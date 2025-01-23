@@ -17,7 +17,7 @@ app.use(express.json());
 
 // CORS configuration
 app.use(cors({
-  origin: 'https://task4-six-vert.vercel.app', // Replace with your actual frontend URL
+  origin: 'https://task4-seven-nu.vercel.app/', // Replace with your actual frontend URL
   credentials: true,
 }));
 
