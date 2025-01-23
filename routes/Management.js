@@ -1,19 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-const User = require("../models/user");
 
-const router = express.Router();
 const Management = () => {
   const [users, setUsers] = useState([]);
   const [error, setError] = useState('');
+  const [selectedUsers, setSelectedUsers] = useState([]);
+  const backendUrl = process.env.REACT_APP_BACKEND_URL || 'https://your-heroku-backend.herokuapp.com';
 
+  // Fetch users when the component mounts
   useEffect(() => {
     fetchUsers();
   }, []);
 
+  // Fetch users function
   const fetchUsers = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/users', {
+      const response = await axios.get(`${backendUrl}/api/users`, {
         withCredentials: true,
       });
       setUsers(response.data);
@@ -22,36 +24,62 @@ const Management = () => {
       setError('Error fetching users');
     }
   };
-  
-  router.post("/block", async (req, res) => {
-    const { userIds } = req.body;
-    try {
-      await User.updateMany({ _id: { $in: userIds } }, { blocked: true });
-      res.status(200).json({ message: "Users blocked successfully" });
-    } catch (error) {
-      res.status(500).json({ message: "Error blocking users", error });
+
+  // Handle checkbox change for selecting users
+  const handleCheckboxChange = (event, userId) => {
+    if (event.target.checked) {
+      setSelectedUsers([...selectedUsers, userId]);
+    } else {
+      setSelectedUsers(selectedUsers.filter(id => id !== userId));
     }
-  });
-  
-  router.post("/unblock", async (req, res) => {
-    const { userIds } = req.body;
+  };
+
+  // Block selected users
+  const handleBlock = async () => {
     try {
-      await User.updateMany({ _id: { $in: userIds } }, { blocked: false });
-      res.status(200).json({ message: "Users unblocked successfully" });
+      await axios.post(`${backendUrl}/api/block`, { userIds: selectedUsers });
+      fetchUsers(); // Reload users after blocking
     } catch (error) {
-      res.status(500).json({ message: "Error unblocking users", error });
+      console.error('Error blocking users:', error);
+      setError('Error blocking users');
     }
-  });
-  
-  module.exports = router;
-  
+  };
+
+  // Unblock selected users
+  const handleUnblock = async () => {
+    try {
+      await axios.post(`${backendUrl}/api/unblock`, { userIds: selectedUsers });
+      fetchUsers(); // Reload users after unblocking
+    } catch (error) {
+      console.error('Error unblocking users:', error);
+      setError('Error unblocking users');
+    }
+  };
+
   return (
     <div>
       <h2>User Management</h2>
       {error && <div className="alert alert-danger">{error}</div>}
+      
+      <div>
+        <button onClick={handleBlock} disabled={selectedUsers.length === 0}>
+          Block
+        </button>
+        <button onClick={handleUnblock} disabled={selectedUsers.length === 0}>
+          Unblock
+        </button>
+      </div>
+      
       <ul>
-        {users.map((user) => (
-          <li key={user._id}>{user.name} ({user.email})</li>
+        {users.map(user => (
+          <li key={user._id}>
+            <input
+              type="checkbox"
+              onChange={(e) => handleCheckboxChange(e, user._id)}
+              checked={selectedUsers.includes(user._id)}
+            />
+            {user.name} ({user.email}) {user.blocked ? ' - Blocked' : ' - Active'}
+          </li>
         ))}
       </ul>
     </div>
